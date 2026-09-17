@@ -687,6 +687,10 @@ function foodRowsHtml(list, opts){
   return list.slice(0,200).map(item=>{
     const tagClass = item.category==='Indian'?'indian':(item.category==='International'?'international':'custom');
     const action = mode==='link' ? 'pick-link' : (mode==='quickadd' ? 'quick-add' : 'select-food');
+    const canDelete = opts.allowDelete && (item.ref.type === 'custom' || item.ref.type === 'meal');
+    const deleteBtn = canDelete
+      ? `<span class="icon-x" data-action="${item.ref.type==='meal'?'delete-custom-meal':'delete-custom-food'}" data-id="${item.ref.id}" title="Delete">${ICON.x}</span>`
+      : '';
     return `<div class="food-row" data-action="${action}" data-ref-type="${item.ref.type}" data-ref-id="${item.ref.id}">
       <div class="info">
         <div class="fname">${escapeHtml(item.name)}</div>
@@ -694,6 +698,7 @@ function foodRowsHtml(list, opts){
       </div>
       <span class="tag ${tagClass}">${item.category}</span>
       <span class="fkcal">${Math.round(item.kcal)}</span>
+      ${deleteBtn}
     </div>`;
   }).join('');
 }
@@ -707,7 +712,7 @@ function renderFoodsView(){
     </div>
     <div class="search-input"><input type="text" id="foodsSearch" placeholder="Search foods..." value="${escapeHtml(foodsFilter.query)}"></div>
     <div class="chip-row" style="margin-bottom:12px;">${cats.map(c=>`<button class="chip ${foodsFilter.cat===c?'active':''}" data-action="foods-filter-cat" data-cat="${c}">${c==='Meal'?'My meals':c}</button>`).join('')}</div>
-    <div class="food-list" id="foodsList">${foodRowsHtml(list,{mode:'quickadd'})}</div>
+    <div class="food-list" id="foodsList">${foodRowsHtml(list,{mode:'quickadd', allowDelete:true})}</div>
   `;
 }
 
@@ -1127,13 +1132,13 @@ function scanModalHtml(){
     if(lastScanResult.ref){
       const base = resolveRefBase(lastScanResult.ref);
       resultBlock = base ? `<div class="card" style="margin-top:14px;">
-        <div class="row between"><strong>${escapeHtml(base.name)}</strong><span class="muted">${lastScanResult.code}</span></div>
+        <div class="row between"><strong>${escapeHtml(base.name)}</strong><span class="muted">${escapeHtml(lastScanResult.code)}</span></div>
         <div class="muted" style="font-size:12.5px;margin:4px 0 12px;">${escapeHtml(base.servingLabel)}</div>
         <button class="btn btn-primary btn-sm" data-action="log-scanned">${ICON.plus} Log this food</button>
       </div>` : '';
     } else {
       resultBlock = `<div class="card" style="margin-top:14px;">
-        <div class="row between"><strong>New barcode</strong><span class="muted">${lastScanResult.code}</span></div>
+        <div class="row between"><strong>New barcode</strong><span class="muted">${escapeHtml(lastScanResult.code)}</span></div>
         <div class="muted" style="font-size:12.5px;margin:4px 0 12px;">Not linked to any food yet.</div>
         <div class="row gap-8">
           <button class="btn btn-outline btn-sm" data-action="link-barcode-existing">Link to existing food</button>
@@ -1165,8 +1170,8 @@ function scanModalHtml(){
     <div class="section-head"><h2>Linked barcodes</h2><span class="meta">${linked.length}</span></div>
     ${linked.length ? linked.map(([code,ref])=>{
       const base = resolveRefBase(ref);
-      return `<div class="barcode-row"><span class="code">${code}</span><span style="flex:1;">${base?escapeHtml(base.name):'(missing food)'}</span>
-        <span class="icon-x" data-action="delete-barcode" data-code="${code}">${ICON.x}</span></div>`;
+      return `<div class="barcode-row"><span class="code">${escapeHtml(code)}</span><span style="flex:1;">${base?escapeHtml(base.name):'(missing food)'}</span>
+        <span class="icon-x" data-action="delete-barcode" data-code="${escapeHtml(code)}">${ICON.x}</span></div>`;
     }).join('') : `<div class="muted" style="font-size:13px;">No barcodes linked yet.</div>`}
   `;
 }
@@ -1388,9 +1393,18 @@ function onClick(e){
     return;
   }
   if(action === 'delete-custom-food'){
+    e.stopPropagation();
     openConfirm('Delete this custom food? This cannot be undone.', ()=>{
       STATE.customFoods = STATE.customFoods.filter(f=>f.id!==t.dataset.id);
       saveState(); renderView(); toast('Custom food deleted.');
+    });
+    return;
+  }
+  if(action === 'delete-custom-meal'){
+    e.stopPropagation();
+    openConfirm('Delete this custom meal? This cannot be undone.', ()=>{
+      STATE.customMeals = STATE.customMeals.filter(m=>m.id!==t.dataset.id);
+      saveState(); renderView(); toast('Custom meal deleted.');
     });
     return;
   }
@@ -1518,7 +1532,7 @@ function onClick(e){
 
 function onInput(e){
   const el = e.target;
-  if(el.id === 'foodsSearch'){ foodsFilter.query = el.value; document.getElementById('foodsList').innerHTML = foodRowsHtml(filterFoods(allBrowsable(), foodsFilter.query, foodsFilter.cat),{mode:'quickadd'}); return; }
+  if(el.id === 'foodsSearch'){ foodsFilter.query = el.value; document.getElementById('foodsList').innerHTML = foodRowsHtml(filterFoods(allBrowsable(), foodsFilter.query, foodsFilter.cat),{mode:'quickadd', allowDelete:true}); return; }
   if(el.id === 'pickerSearch'){
     picker.query = el.value;
     const list = filterFoods(allBrowsable(), picker.query, picker.cat);
