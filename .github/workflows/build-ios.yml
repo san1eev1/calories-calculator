@@ -57,14 +57,6 @@ jobs:
             -exportPath build/ipa
         continue-on-error: true
 
-      - name: Upload to GitHub Releases
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: ios/App/build/ipa/*.ipa
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
