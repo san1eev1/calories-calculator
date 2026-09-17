@@ -818,6 +818,25 @@ function renderServingStep(){
 }
 
 /* ---------- Custom food form ---------- */
+// kcal/protein/carbs/fat are the always-visible primary fields below; every
+// other NUTRIENT_KEYS entry gets a field here, grouped exactly like the
+// Nutrients tab (NUTRIENT_GROUPS), so a supplement's label -- vitamin D,
+// magnesium, creatine, whatever -- can always be entered somewhere.
+const CUSTOM_FOOD_PRIMARY_KEYS = ['protein','carbs','fat'];
+function customFoodNutrientFieldsHtml(){
+  return NUTRIENT_GROUPS.map(grp=>{
+    const rows = grp.rows.filter(([key])=> !CUSTOM_FOOD_PRIMARY_KEYS.includes(key));
+    if(!rows.length) return '';
+    let pairsHtml = '';
+    for(let i=0;i<rows.length;i+=2){
+      const fields = rows.slice(i,i+2).map(([key,label,unit])=>
+        `<div class="field"><label>${escapeHtml(label)} (${escapeHtml(unit)})</label><input type="number" name="${key}" value="0" min="0" step="0.01"></div>`
+      ).join('');
+      pairsHtml += `<div class="field-row">${fields}</div>`;
+    }
+    return `<details class="settings-group"><summary>${escapeHtml(grp.title)}</summary>${pairsHtml}</details>`;
+  }).join('');
+}
 function openCustomFoodForm(){
   const bc = pendingCustomFoodBarcode;
   const html = `
@@ -837,25 +856,8 @@ function openCustomFoodForm(){
         <div class="field"><label>Carbs (g)</label><input type="number" name="carbs" value="0" min="0" step="0.1"></div>
         <div class="field"><label>Fat (g)</label><input type="number" name="fat" value="0" min="0" step="0.1"></div>
       </div>
-      <details class="settings-group"><summary>More nutrients (optional)</summary>
-        <div class="field-row">
-          <div class="field"><label>Saturated fat (g)</label><input type="number" name="satFat" value="0" min="0" step="0.1"></div>
-          <div class="field"><label>Fiber (g)</label><input type="number" name="fiber" value="0" min="0" step="0.1"></div>
-        </div>
-        <div class="field-row">
-          <div class="field"><label>Sugar (g)</label><input type="number" name="sugar" value="0" min="0" step="0.1"></div>
-          <div class="field"><label>Sodium (mg)</label><input type="number" name="sodium" value="0" min="0" step="1"></div>
-        </div>
-        <div class="field-row">
-          <div class="field"><label>Potassium (mg)</label><input type="number" name="potassium" value="0" min="0" step="1"></div>
-          <div class="field"><label>Calcium (mg)</label><input type="number" name="calcium" value="0" min="0" step="1"></div>
-        </div>
-        <div class="field-row">
-          <div class="field"><label>Iron (mg)</label><input type="number" name="iron" value="0" min="0" step="0.1"></div>
-          <div class="field"><label>Vitamin A (mcg)</label><input type="number" name="vitA" value="0" min="0" step="1"></div>
-        </div>
-        <div class="field"><label>Vitamin C (mg)</label><input type="number" name="vitC" value="0" min="0" step="0.1"></div>
-      </details>
+      <div class="field-hint" style="margin:-6px 0 10px;">The groups below match the Nutrients tab — fill in whatever's on the label (a supplement's vitamin D, magnesium, creatine dose, etc.). Anything left at 0 just won't count toward that nutrient's total.</div>
+      ${customFoodNutrientFieldsHtml()}
       <button type="submit" class="btn btn-primary" style="width:100%;margin-top:6px;">Save custom food</button>
     </form>
   `;
@@ -871,10 +873,8 @@ function handleCustomFoodSubmit(form){
     id, name, category:'Custom',
     servingLabel: (fd.get('servingLabel')||'1 serving').toString().trim() || '1 serving',
     servingGrams: num('servingGrams',100),
-    kcal:num('kcal',0), protein:num('protein',0), carbs:num('carbs',0), fat:num('fat',0), satFat:num('satFat',0),
-    fiber:num('fiber',0), sugar:num('sugar',0), sodium:num('sodium',0), potassium:num('potassium',0),
-    calcium:num('calcium',0), iron:num('iron',0), vitA:num('vitA',0), vitC:num('vitC',0),
   };
+  NUTRIENT_KEYS.forEach(k=> food[k] = num(k, 0));
   STATE.customFoods.push(food);
   let msg = 'Custom food added.';
   if(pendingCustomFoodBarcode){
