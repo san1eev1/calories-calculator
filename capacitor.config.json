@@ -1,0 +1,15 @@
+{
+  "appId": "com.calories.tiffin",
+  "appName": "Tiffin",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "iosPrefixPath": "",
+    "cleartext": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  }
+}

@@ -75,6 +75,11 @@ def build(output_path):
     output_path.write_text(out, encoding="utf-8")
     print(f"Built {output_path} ({len(out.encode('utf-8')):,} bytes)")
 
+    # Also copy to index.html for Capacitor/web server compatibility
+    index_path = output_path.parent / "index.html"
+    if output_path.name != "index.html":
+        index_path.write_text(out, encoding="utf-8")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-o", "--output", default="dist/tiffin.html")

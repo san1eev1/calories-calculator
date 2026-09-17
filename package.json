@@ -1,0 +1,30 @@
+{
+  "name": "calories-calculator",
+  "version": "1.0.0",
+  "description": "A self-contained, single-file HTML/CSS/JS nutrition tracker (Cronometer-style, Indian + international food focus). No build tooling, no framework, no backend — everything runs client-side and persists to `localStorage`.",
+  "main": "app.js",
+  "scripts": {
+    "build": "python3 build.py",
+    "build:android": "npm run build && npx cap sync android && npx cap open android",
+    "build:ios": "npm run build && npx cap sync ios && npx cap open ios",
+    "build:web": "npm run build && echo 'Web build complete. Open dist/index.html in a browser.'",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/san1eev1/calories-calculator.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/san1eev1/calories-calculator/issues"
+  },
+  "homepage": "https://github.com/san1eev1/calories-calculator#readme",
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2"
+  }
+}

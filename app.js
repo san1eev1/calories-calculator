@@ -531,18 +531,18 @@ function renderToday(){
         <span class="icon-x" data-action="delete-entry" data-meal="${escapeHtml(slot.id)}" data-index="${idx}" title="Remove">${ICON.x}</span>
       </div>`;
     }).join('') : `<div class="meal-empty">Nothing logged yet.</div>`;
-    return `<div class="card meal-card">
+    return `<div class="meal-card">
       <div class="meal-head">
-        <h3><span>${escapeHtml(slot.emoji)}</span> ${escapeHtml(slot.name)}</h3>
+        <h3><span class="emoji">${escapeHtml(slot.emoji)}</span> ${escapeHtml(slot.name)}</h3>
         <div class="meal-macros">
           <span class="mk">${Math.round(mt.kcal)} kcal</span>
-          <span>P ${round1(mt.protein)}g</span><span>C ${round1(mt.carbs)}g</span><span>F ${round1(mt.fat)}g</span>
+          <span>P ${round1(mt.protein)}g</span>
+          <span>C ${round1(mt.carbs)}g</span>
+          <span>F ${round1(mt.fat)}g</span>
         </div>
       </div>
       ${rows}
-      <div style="margin-top:8px;">
-        <button class="add-link" data-action="open-picker" data-meal="${escapeHtml(slot.id)}">${ICON.plus} Add ${escapeHtml(slot.name)}</button>
-      </div>
+      <div class="meal-add-link" data-action="open-picker" data-meal="${escapeHtml(slot.id)}">${ICON.plus} Add ${escapeHtml(slot.name)}</div>
     </div>`;
   }).join('');
 
