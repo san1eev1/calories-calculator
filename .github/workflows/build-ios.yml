@@ -31,28 +31,19 @@ jobs:
           sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
 
-      - name: Build iOS app
+      - name: Build iOS app for simulator
         run: |
           cd ios/App
-          xcodebuild archive \
+          xcodebuild build \
             -project App.xcodeproj \
             -scheme App \
             -configuration Release \
-            -derivedDataPath build \
-            -archivePath build/App.xcarchive
+            -sdk iphonesimulator \
+            -derivedDataPath build
 
-      - name: Create IPA
-        run: |
-          cd ios/App
-          xcodebuild -exportArchive \
-            -archivePath build/App.xcarchive \
-            -exportOptionsPlist ExportOptions.plist \
-            -exportPath build/ipa
-        continue-on-error: true
-
-      - name: Upload artifact
+      - name: Upload simulator build
         uses: actions/upload-artifact@v4
         with:
-          name: ios-app
-          path: ios/App/build/**/*.app
+          name: ios-simulator-app
+          path: ios/App/build/Release-iphonesimulator/
           retention-days: 30
