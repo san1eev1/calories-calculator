@@ -247,6 +247,16 @@ function getDay(key){
   if(!Array.isArray(d.workouts)) d.workouts = [];
   return d;
 }
+function refsEqual(a,b){ return !!a && !!b && a.type===b.type && a.id===b.id; }
+function purgeFoodRef(ref){
+  Object.keys(STATE.diary).forEach(dateKey=>{
+    const day = STATE.diary[dateKey];
+    STATE.mealSlots.forEach(slot=>{
+      if(Array.isArray(day[slot.id])) day[slot.id] = day[slot.id].filter(entry=> !refsEqual(entry.ref, ref));
+    });
+  });
+  STATE.customMeals.forEach(m=>{ m.items = m.items.filter(it=> !refsEqual(it.ref, ref)); });
+}
 function dayHasEntries(key){
   const d = STATE.diary[key];
   if(!d) return false;
@@ -457,9 +467,10 @@ function barRow(label, consumed, goal, unit, opts){
 }
 function qtyLabelFor(base, qty){
   const grams = Math.round((base.servingGrams||0) * qty);
-  if(Math.abs(qty-1) < 0.001) return `${base.servingLabel} · ${grams} g`;
+  const label = escapeHtml(base.servingLabel);
+  if(Math.abs(qty-1) < 0.001) return `${label} · ${grams} g`;
   const qtyStr = (Math.round(qty*100)/100).toString();
-  return `${qtyStr} × ${base.servingLabel} · ${grams} g`;
+  return `${qtyStr} × ${label} · ${grams} g`;
 }
 const SIZE_MULT = {small:0.75, medium:1, large:1.5};
 function computeGrams(base, unit, amount){
@@ -501,15 +512,15 @@ function renderToday(){
       const base = resolveRefBase(entry.ref);
       if(!base) return '';
       const n = entryNutrients(entry);
-      return `<div class="meal-item" data-action="edit-entry" data-meal="${slot.id}" data-index="${idx}">
+      return `<div class="meal-item" data-action="edit-entry" data-meal="${escapeHtml(slot.id)}" data-index="${idx}">
         <div class="info" style="flex:1;"><div class="name">${escapeHtml(base.name)}</div><div class="qty">${qtyLabelFor(base, entry.qty)}</div></div>
         <div class="kcal">${Math.round(n.kcal)}</div>
-        <span class="icon-x" data-action="delete-entry" data-meal="${slot.id}" data-index="${idx}" title="Remove">${ICON.x}</span>
+        <span class="icon-x" data-action="delete-entry" data-meal="${escapeHtml(slot.id)}" data-index="${idx}" title="Remove">${ICON.x}</span>
       </div>`;
     }).join('') : `<div class="meal-empty">Nothing logged yet.</div>`;
     return `<div class="card meal-card">
       <div class="meal-head">
-        <h3><span>${slot.emoji}</span> ${escapeHtml(slot.name)}</h3>
+        <h3><span>${escapeHtml(slot.emoji)}</span> ${escapeHtml(slot.name)}</h3>
         <div class="meal-macros">
           <span class="mk">${Math.round(mt.kcal)} kcal</span>
           <span>P ${round1(mt.protein)}g</span><span>C ${round1(mt.carbs)}g</span><span>F ${round1(mt.fat)}g</span>
@@ -517,7 +528,7 @@ function renderToday(){
       </div>
       ${rows}
       <div style="margin-top:8px;">
-        <button class="add-link" data-action="open-picker" data-meal="${slot.id}">${ICON.plus} Add ${escapeHtml(slot.name)}</button>
+        <button class="add-link" data-action="open-picker" data-meal="${escapeHtml(slot.id)}">${ICON.plus} Add ${escapeHtml(slot.name)}</button>
       </div>
     </div>`;
   }).join('');
@@ -664,12 +675,15 @@ function renderNutrientsView(){
 let foodsFilter = {query:'', cat:'All'};
 function allBrowsable(){
   const list = [];
-  FOOD_DB.forEach(f=> list.push({ref:{type:'db', id:f.id}, name:f.name, servingLabel:f.servingLabel, kcal:f.kcal, category:f.category}));
+  // Custom foods/meals first: the food-row list is capped (see foodRowsHtml),
+  // and with 332+ DB items ahead of them, a user's own foods could otherwise
+  // fall outside that cap and never show up in the default "All" view.
   STATE.customFoods.forEach(f=> list.push({ref:{type:'custom', id:f.id}, name:f.name, servingLabel:f.servingLabel, kcal:f.kcal, category:'Custom'}));
   STATE.customMeals.forEach(m=>{
     const base = resolveRefBase({type:'meal', id:m.id});
     list.push({ref:{type:'meal', id:m.id}, name:m.name, servingLabel:'1 recipe', kcal: base? base.nutrients.kcal : 0, category:'Meal'});
   });
+  FOOD_DB.forEach(f=> list.push({ref:{type:'db', id:f.id}, name:f.name, servingLabel:f.servingLabel, kcal:f.kcal, category:f.category}));
   return list;
 }
 function filterFoods(list, query, cat){
@@ -689,9 +703,9 @@ function foodRowsHtml(list, opts){
     const action = mode==='link' ? 'pick-link' : (mode==='quickadd' ? 'quick-add' : 'select-food');
     const canDelete = opts.allowDelete && (item.ref.type === 'custom' || item.ref.type === 'meal');
     const deleteBtn = canDelete
-      ? `<span class="icon-x" data-action="${item.ref.type==='meal'?'delete-custom-meal':'delete-custom-food'}" data-id="${item.ref.id}" title="Delete">${ICON.x}</span>`
+      ? `<span class="icon-x" data-action="${item.ref.type==='meal'?'delete-custom-meal':'delete-custom-food'}" data-id="${escapeHtml(item.ref.id)}" title="Delete">${ICON.x}</span>`
       : '';
-    return `<div class="food-row" data-action="${action}" data-ref-type="${item.ref.type}" data-ref-id="${item.ref.id}">
+    return `<div class="food-row" data-action="${action}" data-ref-type="${item.ref.type}" data-ref-id="${escapeHtml(item.ref.id)}">
       <div class="info">
         <div class="fname">${escapeHtml(item.name)}</div>
         <div class="fserv">${escapeHtml(item.servingLabel)}</div>
@@ -763,7 +777,7 @@ function renderServingStep(){
   const qty = base.servingGrams>0 ? grams/base.servingGrams : 1;
   const n = scaleNutrients(base.nutrients, qty);
   const units = [['grams','Grams'],['small','Small'],['medium','Medium'],['large','Large']];
-  const mealOptions = STATE.mealSlots.map(s=>`<option value="${s.id}" ${picker.meal===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('');
+  const mealOptions = STATE.mealSlots.map(s=>`<option value="${escapeHtml(s.id)}" ${picker.meal===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('');
   const isEdit = picker.editMeal != null;
   const primaryAction = (picker.singleMode || isEdit) ? 'commit-single' : 'add-to-cart';
   const primaryLabel = isEdit ? 'Save' : (picker.singleMode ? 'Add' : 'Add to list');
@@ -776,7 +790,7 @@ function renderServingStep(){
     <div class="field"><label>Amount ${picker.activeUnit==='grams' ? '(grams)' : '('+picker.activeUnit+' servings)'}</label>
       <input type="number" id="servingAmount" value="${picker.activeAmount}" min="0.1" step="${picker.activeUnit==='grams'?1:0.5}" inputmode="decimal">
     </div>
-    ${!picker.meal ? `<div class="field"><label>Meal</label><select id="pickerMealSelect">${mealOptions}</select></div>` : `<div class="field-hint" style="margin-bottom:10px;">Adding to ${mealEmoji(picker.meal)} ${escapeHtml(mealName(picker.meal))}</div>`}
+    ${!picker.meal ? `<div class="field"><label>Meal</label><select id="pickerMealSelect">${mealOptions}</select></div>` : `<div class="field-hint" style="margin-bottom:10px;">Adding to ${escapeHtml(mealEmoji(picker.meal))} ${escapeHtml(mealName(picker.meal))}</div>`}
     <div class="grid-2" style="margin:14px 0;">
       <div class="stat-block"><div class="label">Calories</div><div class="value" id="servingKcal">${Math.round(n.kcal)}</div></div>
       <div class="stat-block"><div class="label">Protein</div><div class="value" id="servingProtein">${round1(n.protein)}g</div></div>
@@ -879,7 +893,7 @@ function renderMealBuilderModal(){
       <span class="icon-x" data-action="remove-meal-item" data-index="${idx}">${ICON.x}</span>
     </div>`;
   }).join('') || `<div class="meal-empty">No ingredients yet — search below to add some.</div>`;
-  const matchRows = matches.length ? matches.map(m=>`<div class="food-row" data-action="add-meal-item" data-ref-type="${m.ref.type}" data-ref-id="${m.ref.id}">
+  const matchRows = matches.length ? matches.map(m=>`<div class="food-row" data-action="add-meal-item" data-ref-type="${m.ref.type}" data-ref-id="${escapeHtml(m.ref.id)}">
       <div class="info"><div class="fname">${escapeHtml(m.name)}</div><div class="fserv">${escapeHtml(m.servingLabel)}</div></div>
       <span class="fkcal">${Math.round(m.kcal)}</span>
     </div>`).join('') : '';
@@ -900,8 +914,8 @@ function openMealSlotsModal(){ renderMealSlotsModal(); }
 function renderMealSlotsModal(){
   const rows = STATE.mealSlots.map((s,idx)=>`
     <div class="slot-row">
-      <button class="emoji-btn" data-action="slot-cycle-emoji" data-id="${s.id}">${s.emoji}</button>
-      <input type="text" data-slot-name="${s.id}" value="${escapeHtml(s.name)}" placeholder="Meal name">
+      <button class="emoji-btn" data-action="slot-cycle-emoji" data-id="${escapeHtml(s.id)}">${escapeHtml(s.emoji)}</button>
+      <input type="text" data-slot-name="${escapeHtml(s.id)}" value="${escapeHtml(s.name)}" placeholder="Meal name">
       <div class="slot-reorder">
         <button data-action="slot-move-up" data-index="${idx}" ${idx===0?'disabled':''}>${ICON.chevUp}</button>
         <button data-action="slot-move-down" data-index="${idx}" ${idx===STATE.mealSlots.length-1?'disabled':''}>${ICON.chevDown}</button>
@@ -1339,13 +1353,14 @@ function onClick(e){
   if(action === 'picker-finish'){
     const meal = picker.meal || STATE.mealSlots[0].id;
     const day = getDay(picker.dateKey);
+    const addedCount = picker.cart.length;
     picker.cart.forEach(item=>{
       const base = resolveRefBase(item.ref);
       const qty = base && base.servingGrams>0 ? item.grams/base.servingGrams : 1;
       day[meal].push({ref:item.ref, qty});
     });
     saveState(); closeModal();
-    toast('Added '+picker.cart.length+' food'+(picker.cart.length>1?'s':'')+' to '+mealName(meal)+'.');
+    toast('Added '+addedCount+' food'+(addedCount>1?'s':'')+' to '+mealName(meal)+'.');
     renderView();
     return;
   }
@@ -1356,10 +1371,11 @@ function onClick(e){
     const sel = document.getElementById('pickerMealSelect');
     const meal = picker.meal || (sel ? sel.value : STATE.mealSlots[0].id);
     const day = getDay(picker.dateKey);
-    if(picker.editMeal != null && picker.editIndex != null){ day[picker.editMeal].splice(picker.editIndex,1); }
+    const wasEdit = picker.editMeal != null && picker.editIndex != null;
+    if(wasEdit){ day[picker.editMeal].splice(picker.editIndex,1); }
     day[meal].push({ref:picker.activeRef, qty});
     saveState(); closeModal();
-    toast(picker.editMeal!=null ? 'Saved.' : 'Added to '+mealName(meal)+'.');
+    toast(wasEdit ? 'Saved.' : 'Added to '+mealName(meal)+'.');
     renderView();
     return;
   }
@@ -1394,16 +1410,20 @@ function onClick(e){
   }
   if(action === 'delete-custom-food'){
     e.stopPropagation();
-    openConfirm('Delete this custom food? This cannot be undone.', ()=>{
-      STATE.customFoods = STATE.customFoods.filter(f=>f.id!==t.dataset.id);
+    const id = t.dataset.id;
+    openConfirm('Delete this custom food? This also removes it from your diary and any custom meals that use it, and cannot be undone.', ()=>{
+      STATE.customFoods = STATE.customFoods.filter(f=>f.id!==id);
+      purgeFoodRef({type:'custom', id});
       saveState(); renderView(); toast('Custom food deleted.');
     });
     return;
   }
   if(action === 'delete-custom-meal'){
     e.stopPropagation();
-    openConfirm('Delete this custom meal? This cannot be undone.', ()=>{
-      STATE.customMeals = STATE.customMeals.filter(m=>m.id!==t.dataset.id);
+    const id = t.dataset.id;
+    openConfirm('Delete this custom meal? This also removes it from your diary, and cannot be undone.', ()=>{
+      STATE.customMeals = STATE.customMeals.filter(m=>m.id!==id);
+      purgeFoodRef({type:'meal', id});
       saveState(); renderView(); toast('Custom meal deleted.');
     });
     return;
