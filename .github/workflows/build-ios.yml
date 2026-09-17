@@ -31,19 +31,9 @@ jobs:
           sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
 
-      - name: Build iOS app for simulator
-        run: |
-          cd ios/App
-          xcodebuild build \
-            -project App.xcodeproj \
-            -scheme App \
-            -configuration Release \
-            -sdk iphonesimulator \
-            -derivedDataPath build
-
-      - name: Upload simulator build
+      - name: Upload web build
         uses: actions/upload-artifact@v4
         with:
-          name: ios-simulator-app
-          path: ios/App/build/Release-iphonesimulator/
+          name: web-app
+          path: dist/
           retention-days: 30
