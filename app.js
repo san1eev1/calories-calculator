@@ -134,14 +134,27 @@ function defaultState(){
 
 /* ---------- Storage ---------- */
 let storageOk = true;
+// Copies only keys already present on `defaults` from `source`, so a
+// stored/imported JSON blob can never introduce arbitrary keys (including
+// "__proto__", which Object.assign(target, source) would otherwise use to
+// repoint target's prototype — CWE-1321 prototype pollution).
+function mergeKnownFields(defaults, source){
+  const out = Object.assign({}, defaults);
+  if(source && typeof source === 'object'){
+    Object.keys(defaults).forEach(k=>{
+      if(Object.prototype.hasOwnProperty.call(source, k)) out[k] = source[k];
+    });
+  }
+  return out;
+}
 function loadState(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
     if(!raw) return defaultState();
     const parsed = JSON.parse(raw);
     const s = defaultState();
-    s.goals = Object.assign({}, DEFAULT_GOALS, parsed.goals || {});
-    s.profile = Object.assign(defaultProfile(), parsed.profile || {});
+    s.goals = mergeKnownFields(DEFAULT_GOALS, parsed.goals);
+    s.profile = mergeKnownFields(defaultProfile(), parsed.profile);
     s.diary = parsed.diary || {};
     s.weightLog = Array.isArray(parsed.weightLog) ? parsed.weightLog : [];
     s.customFoods = Array.isArray(parsed.customFoods) ? parsed.customFoods : [];
@@ -1261,8 +1274,8 @@ function importFromFile(file){
     try{
       const parsed = JSON.parse(reader.result);
       const s = defaultState();
-      s.goals = Object.assign({}, DEFAULT_GOALS, parsed.goals||{});
-      s.profile = Object.assign(defaultProfile(), parsed.profile||{});
+      s.goals = mergeKnownFields(DEFAULT_GOALS, parsed.goals);
+      s.profile = mergeKnownFields(defaultProfile(), parsed.profile);
       s.diary = parsed.diary || {};
       s.weightLog = Array.isArray(parsed.weightLog) ? parsed.weightLog : [];
       s.customFoods = Array.isArray(parsed.customFoods) ? parsed.customFoods : [];
