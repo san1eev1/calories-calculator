@@ -21,10 +21,13 @@
     "url": "https://github.com/san1eev1/calories-calculator/issues"
   },
   "homepage": "https://github.com/san1eev1/calories-calculator#readme",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "dependencies": {
-    "@capacitor/android": "^8.5.2",
-    "@capacitor/cli": "^8.5.2",
-    "@capacitor/core": "^8.5.2",
-    "@capacitor/ios": "^8.5.2"
+    "@capacitor/android": "^7.3.0",
+    "@capacitor/cli": "^7.3.0",
+    "@capacitor/core": "^7.3.0",
+    "@capacitor/ios": "^7.3.0"
   }
 }
