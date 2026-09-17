@@ -31,22 +31,15 @@ jobs:
           sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
 
-      - name: Install CocoaPods
-        run: sudo gem install cocoapods
-
-      - name: Install iOS pods
-        run: |
-          cd ios/App
-          pod install --repo-update
-
       - name: Build iOS app
         run: |
           cd ios/App
-          xcodebuild build-for-testing \
-            -workspace App.xcworkspace \
+          xcodebuild archive \
+            -project App.xcodeproj \
             -scheme App \
             -configuration Release \
-            -derivedDataPath build
+            -derivedDataPath build \
+            -archivePath build/App.xcarchive
 
       - name: Create IPA
         run: |
