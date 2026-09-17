@@ -1,1 +1,11 @@
 dist/
+node_modules/
+.DS_Store
+*.xcarchive
+*.ipa
+*.apk
+android/app/build/
+android/.gradle/
+ios/App/Pods/
+ios/App/Podfile.lock
+ios/App/.xcodeproj/xcuserdata/
