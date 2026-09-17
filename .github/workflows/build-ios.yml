@@ -1,0 +1,72 @@
+name: Build iOS App
+
+on:
+  push:
+    branches: [ main, claude/friendly-davinci-kz02xp ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Sync to iOS
+        run: npx cap sync ios
+
+      - name: Set up Xcode
+        run: |
+          sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Install CocoaPods
+        run: sudo gem install cocoapods
+
+      - name: Install iOS pods
+        run: |
+          cd ios/App
+          pod install --repo-update
+
+      - name: Build iOS app
+        run: |
+          cd ios/App
+          xcodebuild build-for-testing \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -derivedDataPath build
+
+      - name: Create IPA
+        run: |
+          cd ios/App
+          xcodebuild -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath build/ipa
+        continue-on-error: true
+
+      - name: Upload to GitHub Releases
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ios/App/build/ipa/*.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ios-app
+          path: ios/App/build/**/*.app
+          retention-days: 30
