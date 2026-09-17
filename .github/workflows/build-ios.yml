@@ -31,6 +31,39 @@ jobs:
           sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
 
+      - name: Build iOS app (unsigned development)
+        run: |
+          cd ios/App
+          xcodebuild -scheme App \
+            -configuration Debug \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            -arch arm64 \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_ENTITLEMENTS="" \
+            build 2>&1 | grep -i "error\|warning" || true
+
+      - name: Create unsigned IPA
+        run: |
+          cd ios/App
+          mkdir -p build/ipa
+          cp -r build/Build/Products/Debug-iphoneos/App.app build/ipa/
+          cd build/ipa
+          mkdir -p App.ipa/Payload
+          mv App.app App.ipa/Payload/
+          cd App.ipa
+          zip -r ../App-unsigned.ipa Payload
+          cd ..
+          rm -rf App.ipa
+
+      - name: Upload iOS IPA (unsigned development build)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app-unsigned
+          path: ios/App/build/ipa/App-unsigned.ipa
+          retention-days: 30
+
       - name: Upload web build
         uses: actions/upload-artifact@v4
         with:
