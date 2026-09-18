@@ -34,6 +34,7 @@ def build(output_path):
     css = (ROOT / "app.css").read_text(encoding="utf-8")
     appjs = (ROOT / "app.js").read_text(encoding="utf-8")
     fooddb = (ROOT / "food_db.json").read_text(encoding="utf-8")
+    icon_b64 = base64.b64encode((ROOT / "icon-180.png").read_bytes()).decode("ascii")
 
     fooddb_script_body = "\nconst FOOD_DB = " + fooddb + ";\n"
     appjs_script_body = "\n" + appjs + "\n"
@@ -55,7 +56,7 @@ def build(output_path):
         f"script-src {script_hashes} https://cdnjs.cloudflare.com 'strict-dynamic'",
         "style-src 'unsafe-inline' https://fonts.googleapis.com",
         "font-src https://fonts.gstatic.com",
-        "img-src 'self'",
+        "img-src 'self' data:",
         "media-src 'self'",
         "connect-src 'none'",
         "object-src 'none'",
@@ -65,6 +66,7 @@ def build(output_path):
 
     out = (
         shell.replace("__CSP__", csp)
+             .replace("__ICONB64__", icon_b64)
              .replace("/*__CSS__*/", css)
              .replace("/*__FOODDB__*/", fooddb)
              .replace("/*__APPJS__*/", appjs)
@@ -80,11 +82,6 @@ def build(output_path):
     if output_path.name != "index.html":
         index_path.write_text(out, encoding="utf-8")
 
-    # Home-screen icon (iOS "Add to Home Screen" / Android PWA install), referenced
-    # by shell.html's apple-touch-icon link -- ships alongside the built HTML.
-    icon_src = ROOT / "icon-180.png"
-    if icon_src.exists():
-        (output_path.parent / "icon-180.png").write_bytes(icon_src.read_bytes())
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
