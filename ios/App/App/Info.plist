@@ -24,6 +24,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Tiffin uses your camera to scan food barcodes so you can quickly log packaged foods.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Tiffin does not record audio. This permission is requested by the browser engine alongside camera access and is not used.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
