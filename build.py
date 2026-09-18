@@ -55,7 +55,7 @@ def build(output_path):
         f"script-src {script_hashes} https://cdnjs.cloudflare.com 'strict-dynamic'",
         "style-src 'unsafe-inline' https://fonts.googleapis.com",
         "font-src https://fonts.gstatic.com",
-        "img-src 'none'",
+        "img-src 'self'",
         "media-src 'self'",
         "connect-src 'none'",
         "object-src 'none'",
@@ -79,6 +79,12 @@ def build(output_path):
     index_path = output_path.parent / "index.html"
     if output_path.name != "index.html":
         index_path.write_text(out, encoding="utf-8")
+
+    # Home-screen icon (iOS "Add to Home Screen" / Android PWA install), referenced
+    # by shell.html's apple-touch-icon link -- ships alongside the built HTML.
+    icon_src = ROOT / "icon-180.png"
+    if icon_src.exists():
+        (output_path.parent / "icon-180.png").write_bytes(icon_src.read_bytes())
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
